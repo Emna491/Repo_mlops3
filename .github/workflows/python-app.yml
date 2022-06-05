@@ -1,38 +1,46 @@
-name: CI # Name of the Action
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-on: [push] # When this action runs on ex: push or pull request
+name: Python application
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest # Which OS this runs on, you can also build on Windows or MacOS
-    strategy:
-      matrix:
-        python-version: [3.8] # You can build against multiple Python versions
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2 # Calling a pre-built GitHub Action which allows your Action to access your repository
-    - name: Set up Python ${{ matrix.python-version }} # Name of an action that sets up Python
-      uses: actions/setup-python@v2 # A pre-built GitHub Action that sets up a Python environment
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.8.12
+      uses: actions/setup-python@v3
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies 
+        python-version: "3.8.12"
+    - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip # Upgrade pip to the latest version
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi # If we have a requirements.txt, then install it
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
-        flake8 . --count --show-source --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         role-to-assume: arn:aws:iam::123456789100:role/my-github-actions-role
         aws-region: us-east-2
-    - name: DVC install
+    - name: Install DVC
       uses: iterative/setup-dvc@v1
-    - name: DVC pull
+    - name: Configure DVC
       run: |
-        dvc pull 
-    - name: Test with pytest # Final action which runs pytest. If any test fails, then this Action fails
+        dvc pull
+    - name: Test with pytest
       run: |
-        pytest 
+        pytest
